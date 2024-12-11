@@ -14,27 +14,31 @@ def wrap_text(text, font, font_scale, thickness, max_width):
         test_line = word if not current_line else f"{current_line} {word}"
         (w, _), _ = cv2.getTextSize(test_line, font, font_scale, thickness)
         if w > max_width and current_line:
-            # If adding the new word exceeds the width, push the current line and start a new one
             wrapped_lines.append(current_line)
             current_line = word
         else:
             current_line = test_line
 
-    # Add the last line if it's not empty
     if current_line:
         wrapped_lines.append(current_line)
 
     return wrapped_lines
 
 def main():
-    st.title("Mindful Companion Chatbot")
-    st.markdown("Welcome to **Mindful Companion**, your friendly wellness consultant! 🌟")
+    st.title("Serenity AI")
+    st.markdown("Welcome to **Serenity AI - Mindful Companion Chatbot**, your friendly wellness consultant! 🌟")
 
-    # Initialize persistent state for COLL
     if "COLL" not in st.session_state:
         st.session_state["COLL"] = []
 
-    # Collect user details
+    if "messages" not in st.session_state:
+        st.session_state["messages"] = [
+            {"role": "assistant", "content": "Hi there, I'm your wellness consultant! 🌟"}
+        ]
+
+    if "prescription_generated" not in st.session_state:
+        st.session_state["prescription_generated"] = False
+
     st.sidebar.header("Your Details")
     name = st.sidebar.text_input("Name")
     age = st.sidebar.number_input("Age", min_value=1, max_value=120, step=1)
@@ -42,18 +46,10 @@ def main():
     nationality = st.sidebar.text_input("Nationality")
     preferences = st.sidebar.text_area("Anything you'd like us to focus on?")
 
-    # Display a friendly message
     st.markdown("Let's start your journey to clarity and balance! 💖")
 
-    # Chat interface
     st.markdown("---")
     st.markdown("### Chat")
-
-    if "messages" not in st.session_state:
-        st.session_state["messages"] = [
-            {"role": "assistant", "content":
-                f"Hi {name if name else 'there'}, I'm your wellness consultant! 🌟"}
-        ]
 
     for message in st.session_state["messages"]:
         if message["role"] == "assistant":
@@ -67,7 +63,6 @@ def main():
             st.session_state["messages"].append({"role": "user", "content": user_input})
             sup = {m['role']: m['content'] for m in st.session_state['messages']}
 
-            # Integrate user inputs into the chatbot prompt
             prompt = (
                 f"User Details:\n"
                 f"Name: {name}\n"
@@ -79,7 +74,6 @@ def main():
                 f"{''.join(sup)}"
             )
 
-            # Call Groq API
             completion = client.chat.completions.create(
                 model="llama3-70b-8192",
                 messages=[{"role": "system", "content": prompt}],
@@ -91,61 +85,76 @@ def main():
             )
 
             response = completion.choices[0].message.content
-            st.session_state["COLL"].append(response)  # Persist response
-            st.markdown(response)
+            st.session_state["COLL"].append(response)
             st.session_state["messages"].append({"role": "assistant", "content": response})
+            st.markdown(response)
 
-    # Generate Prescription Image
+    # New button to get collective advice
+    if st.button("Get Collective Advice"):
+        if st.session_state["COLL"]:
+            summary_prompt = (
+                "You are a helpful assistant. The following are multiple responses you've given to a user:\n\n"
+                + "\n".join(st.session_state["COLL"]) +
+                "\n\nPlease summarize all these responses and give a collective, generous piece of advice on how they can overcome their problems."
+            )
+            summary_completion = client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=[{"role": "system", "content": summary_prompt}],
+                temperature=1,
+                max_tokens=200,
+                top_p=1,
+                stream=False,
+                stop=None,
+            )
+            final_advice = summary_completion.choices[0].message.content
+            st.markdown("**Collective Advice:**")
+            st.markdown(final_advice)
+
     if st.button("Generate Prescription"):
-        if name and age and gender:
-            # Load the prescription template
-            image_path = "detected_text_areas.jpg"  # Replace with a relative path to your template
-            image = cv2.imread(image_path)
+        if not st.session_state["prescription_generated"]:
+            if name and age and gender:
+                image_path = "detected_text_areas.jpg"  # Adjust if needed
+                image = cv2.imread(image_path)
 
-            if image is None:
-                st.error(f"Failed to load image from path: {image_path}. Please check the image path.")
+                if image is None:
+                    st.error(f"Failed to load image from path: {image_path}. Please check the image path.")
+                else:
+                    title = "Mr." if gender == "Male" else "Miss." if gender == "Female" else ""
+                    formatted_name = f"{title} {name}"
+
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    font_scale = 0.7  # Reduced text size
+                    font_color = (0, 0, 0)  
+                    thickness = 1
+
+                    # Name
+                    name_coords = (170, 420)
+                    cv2.putText(image, formatted_name, name_coords, font, font_scale, font_color, thickness)
+
+                    # Age
+                    age_coords = (620, 520)
+                    cv2.putText(image, f"{age}", age_coords, font, font_scale, font_color, thickness)
+
+                    # Wrap and add responses
+                    response_text = " ".join(st.session_state["COLL"])
+                    max_text_width = 500  # Slightly narrower for better wrapping
+                    lines = wrap_text(response_text, font, font_scale, thickness, max_text_width)
+
+                    resp_start_x, resp_start_y = 100, 620
+                    line_height = 25
+                    for i, line in enumerate(lines):
+                        y_position = resp_start_y + i * line_height
+                        cv2.putText(image, line, (resp_start_x, y_position), font, font_scale, font_color, thickness)
+
+                    output_path = "output_prescription.jpeg"
+                    cv2.imwrite(output_path, image)
+
+                    st.image(image, caption="Processed Image", use_column_width=True)
+                    st.image(output_path, caption="Generated Prescription")
+                    st.success("Prescription generated successfully!")
+                    st.session_state["prescription_generated"] = True
             else:
-                # Define title (Mr./Miss.) based on gender
-                title = "Mr." if gender == "Male" else "Miss." if gender == "Female" else ""
-                formatted_name = f"{title} {name}"
-
-                # Define text properties
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                font_scale = 1
-                font_color = (0, 0, 0)  # Black text
-                thickness = 2
-
-                # Add Name
-                name_coords = (170, 420)  # Adjust these based on your template
-                cv2.putText(image, formatted_name, name_coords, font, font_scale, font_color, thickness)
-
-                # Add Age
-                age_coords = (620, 520)  # Adjust these based on your template
-                cv2.putText(image, f"{age}", age_coords, font, font_scale, font_color, thickness)
-
-                # Wrap the response text
-                response_text = " ".join(st.session_state["COLL"])  # Join persisted responses
-                max_text_width = 600  # Adjust as needed based on the image size and desired text width
-                lines = wrap_text(response_text, font, font_scale, thickness, max_text_width)
-
-                # Starting coordinates for the response text
-                resp_start_x, resp_start_y = 200, 620  # Adjust these based on your template
-                line_height = 30  # Adjust spacing between lines as needed
-
-                # Write each line onto the image
-                for i, line in enumerate(lines):
-                    y_position = resp_start_y + i * line_height
-                    cv2.putText(image, line, (resp_start_x, y_position), font, font_scale, font_color, thickness)
-
-                # Save and display the final image
-                output_path = "output_prescription.jpeg"
-                cv2.imwrite(output_path, image)
-
-                st.image(image, caption="Processed Image", use_column_width=True)
-                st.image(output_path, caption="Generated Prescription")
-                st.success("Prescription generated successfully!")
-        else:
-            st.error("Please provide your Name, Age, and Gender to generate the prescription.")
+                st.error("Please provide your Name, Age, and Gender to generate the prescription.")
 
 if __name__ == "__main__":
     main()
