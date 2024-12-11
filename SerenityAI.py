@@ -82,8 +82,8 @@ def wrap_text(text, font, font_scale, thickness, max_width):
     return wrapped_lines
 
 def main():
-    st.markdown("<h1>Mindful Companion Chatbot</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size:1.2em; color:#333;'>Welcome to <b>Mindful Companion</b>, your friendly guide to mental wellness and clarity.🌟</p>", unsafe_allow_html=True)
+    st.markdown("<h1>Serenity AI</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size:1.2em; color:#333;'>Welcome to <b>Mindful Companion Chatbot</b>, your friendly guide to mental wellness and clarity.🌟</p>", unsafe_allow_html=True)
 
     if "COLL" not in st.session_state:
         st.session_state["COLL"] = []
