@@ -2,7 +2,6 @@ import streamlit as st
 from groq import Groq
 import cv2
 import numpy as np
-import 
 
 client = Groq(api_key = st.secrets("api_key"))
 
