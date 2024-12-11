@@ -3,7 +3,7 @@ from groq import Groq
 import cv2
 import numpy as np
 
-client = Groq(api_key = st.secrets("api_key"))
+client = Groq(api_key = st.secrets["api_key"])
 
 # Streamlit App
 def main():
