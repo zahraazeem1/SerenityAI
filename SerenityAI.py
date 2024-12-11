@@ -163,6 +163,7 @@ def main():
                     stop=None,
                 )
                 final_advice = summary_completion.choices[0].message.content
+                st.session_state["final_advice"] = final_advice
                 st.markdown("**Collective Advice:**")
                 st.markdown(final_advice)
 
@@ -192,8 +193,8 @@ def main():
                     age_coords = (620, 520)
                     cv2.putText(image, f"{age}", age_coords, font, font_scale, font_color, thickness)
 
-                    # Responses
-                    response_text = " ".join(st.session_state["COLL"])
+                    # Use the final advice if available
+                    response_text = st.session_state.get("final_advice", " ".join(st.session_state["COLL"]))
                     max_text_width = 500
                     lines = wrap_text(response_text, font, font_scale, thickness, max_text_width)
 
