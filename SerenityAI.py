@@ -3,9 +3,8 @@ from groq import Groq
 import cv2
 import numpy as np
 
-# Initialize Groq client
-client = Groq(api_key="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")
-
+# Retrieve API key from secrets
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 # Streamlit App
 def main():
@@ -81,7 +80,7 @@ def main():
     if st.button("Generate Prescription"):
         if name and age and gender:
             # Load the prescription template
-            image_path = f"/Users/zahraazeem/SerenityAI/env/detected_text_areas.jpg"  # Replace with your image path
+            image_path = "/Users/zahraazeem/SerenityAI/env/detected_text_areas.jpg"  # Replace with your image path
             image = cv2.imread(image_path)
 
             # Check if the image was loaded correctly
@@ -113,7 +112,6 @@ def main():
 
                 # Save the final image
                 output_path = "output_prescription.jpeg"
-                # Save the processed image (you had commented out the save line)
                 cv2.imwrite(output_path, image)
 
                 # Display the processed image
@@ -124,7 +122,6 @@ def main():
                 st.success("Prescription generated successfully!")
         else:
             st.error("Please provide your Name, Age, and Gender to generate the prescription.")
-
 
 if __name__ == "__main__":
     main()
