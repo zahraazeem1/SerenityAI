@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 # Retrieve API key from secrets
-client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+client = Groq()
 
 # Streamlit App
 def main():
